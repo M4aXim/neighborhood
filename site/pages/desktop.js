@@ -343,8 +343,10 @@ export default function Home() {
     if (backgroundMusic.current) {
       if (isMuted) {
         backgroundMusic.current.play();
+        localStorage.setItem('musicismuted', 'false');
       } else {
         backgroundMusic.current.pause();
+        localStorage.setItem('musicismuted', 'true');
       }
       setIsMuted(!isMuted);
     }
@@ -394,6 +396,16 @@ export default function Home() {
       setIsHomesWindowExiting(false);
     }, 300);
   };
+
+  // On mount, sync isMuted with localStorage
+  useEffect(() => {
+    const muted = localStorage.getItem('musicismuted');
+    if (muted === 'true') {
+      setIsMuted(true);
+    } else {
+      setIsMuted(false);
+    }
+  }, []);
 
   return (
     <>
