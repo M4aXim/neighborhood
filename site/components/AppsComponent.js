@@ -515,36 +515,30 @@ const AppsComponent = ({ isExiting, onClose, userData, setUserData, slackUsers, 
     const fetchHackatimeProjects = async () => {
       try {
         setLoadingHackatime(true);
-        
-        if (!userData?.slackId) {
-          console.log('No Slack ID available');
-          return;
-        }
-
-        console.log("[DEBUG] Fetching Hackatime projects for user:", {
-          slackId: userData.slackId,
-          userId: userData.id,
-          currentAppId: currentAppId
+        const token = localStorage.getItem('neighborhoodToken') || getToken();
+        const response = await fetch(`/api/getHackatimeProjects?slackId=${userData.slackId}&userId=${userData.id}`, {
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
         });
 
-        const response = await fetch(`/api/getHackatimeProjects?slackId=${userData.slackId}&userId=${userData.id}`);
         if (!response.ok) {
-          console.log('No Hackatime projects found or error fetching them');
-          setHackatimeProjects([]); // Set empty array instead of throwing
-          return;
+          throw new Error('Failed to fetch Hackatime projects');
         }
-        
+
         const data = await response.json();
-        console.log("[DEBUG] Received Hackatime projects:", data.projects?.map(p => ({
-          name: p.name,
-          isAttributed: p.isAttributed,
-          attributedToAppId: p.attributedToAppId,
-          totalSeconds: p.total_seconds
-        })));
-        setHackatimeProjects(data.projects || []);
-      } catch (err) {
-        console.error("Error fetching Hackatime projects:", err);
-        setHackatimeProjects([]); // Set empty array on error
+        console.log("[DEBUG] Hackatime data received:", data);
+        
+        // Use hackatimeProjects for checkmarks while keeping time display
+        const projectsWithTime = data.projects.map(project => ({
+          ...project,
+          isUserProject: data.hackatimeProjects.includes(project.name)
+        }));
+
+        setHackatimeProjects(projectsWithTime);
+      } catch (error) {
+        console.error('Error fetching Hackatime projects:', error);
+        setError('Failed to load Hackatime projects');
       } finally {
         setLoadingHackatime(false);
       }

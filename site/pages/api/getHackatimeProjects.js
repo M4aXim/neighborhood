@@ -174,7 +174,8 @@ export default async function handler(req, res) {
 
     // Return the projects data with attribution status
     return res.status(200).json({
-      projects: projectsWithStatus || []
+      projects: projectsWithStatus || [],
+      hackatimeProjects: projectNames || []
     });
 
   } catch (error) {
