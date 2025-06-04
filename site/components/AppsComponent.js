@@ -515,6 +515,18 @@ const AppsComponent = ({ isExiting, onClose, userData, setUserData, slackUsers, 
     const fetchHackatimeProjects = async () => {
       try {
         setLoadingHackatime(true);
+        
+        if (!userData?.slackId) {
+          console.log('No Slack ID available');
+          return;
+        }
+
+        console.log("[DEBUG] Fetching Hackatime projects for user:", {
+          slackId: userData.slackId,
+          userId: userData.id,
+          currentAppId: currentAppId
+        });
+
         const token = localStorage.getItem('neighborhoodToken') || getToken();
         const response = await fetch(`/api/getHackatimeProjects?slackId=${userData.slackId}&userId=${userData.id}`, {
           headers: {
@@ -523,11 +535,18 @@ const AppsComponent = ({ isExiting, onClose, userData, setUserData, slackUsers, 
         });
 
         if (!response.ok) {
-          throw new Error('Failed to fetch Hackatime projects');
+          console.log('No Hackatime projects found or error fetching them');
+          setHackatimeProjects([]); // Set empty array instead of throwing
+          return;
         }
 
         const data = await response.json();
-        console.log("[DEBUG] Hackatime data received:", data);
+        console.log("[DEBUG] Received Hackatime projects:", data.projects?.map(p => ({
+          name: p.name,
+          isAttributed: p.isAttributed,
+          attributedToAppId: p.attributedToAppId,
+          totalSeconds: p.total_seconds
+        })));
         
         // Use hackatimeProjects for checkmarks while keeping time display
         const projectsWithTime = data.projects.map(project => ({
@@ -536,9 +555,9 @@ const AppsComponent = ({ isExiting, onClose, userData, setUserData, slackUsers, 
         }));
 
         setHackatimeProjects(projectsWithTime);
-      } catch (error) {
-        console.error('Error fetching Hackatime projects:', error);
-        setError('Failed to load Hackatime projects');
+      } catch (err) {
+        console.error("Error fetching Hackatime projects:", err);
+        setHackatimeProjects([]); // Set empty array on error
       } finally {
         setLoadingHackatime(false);
       }
