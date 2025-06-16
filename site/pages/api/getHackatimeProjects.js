@@ -108,6 +108,7 @@ export default async function handler(req, res) {
     existingProjects.forEach(project => {
       const neighborIds = project.fields.neighbor || [];
       const isUserProject = neighborIds.includes(userId);
+      const appIds = project.fields.Apps || [];
       
       console.log(`\nProject "${project.fields.name}":`, {
         projectId: project.id,
@@ -125,14 +126,16 @@ export default async function handler(req, res) {
           exactComparison: neighborIds.map(id => `${id} === ${userId} : ${id === userId}`)
         },
         apps: {
-          appIds: project.fields.Apps || []
+          appIds: appIds
         }
       });
 
-      // Removed isAttributed logic to allow all users to claim any project
+      // Store project status with attribution info
       projectStatusMap.set(project.fields.name, {
         isUserProject,
-        attributedToAppId: project.fields.Apps ? project.fields.Apps[0] : null
+        attributedToAppId: appIds.length > 0 ? appIds[0] : null,
+        totalNeighbors: neighborIds.length,
+        projectId: project.id
       });
     });
 
@@ -141,7 +144,9 @@ export default async function handler(req, res) {
     const projectsWithStatus = hackatimeData.data.projects.map(project => {
       const status = projectStatusMap.get(project.name) || {
         isUserProject: false,
-        attributedToAppId: null
+        attributedToAppId: null,
+        totalNeighbors: 0,
+        projectId: null
       };
 
       console.log(`\nProject "${project.name}":`, {
@@ -152,7 +157,9 @@ export default async function handler(req, res) {
         fromAirtable: projectStatusMap.get(project.name),
         finalStatus: {
           isUserProject: status.isUserProject,
-          attributedToAppId: status.attributedToAppId
+          attributedToAppId: status.attributedToAppId,
+          totalNeighbors: status.totalNeighbors,
+          projectId: status.projectId
         }
       });
 
@@ -160,6 +167,8 @@ export default async function handler(req, res) {
         ...project,
         isUserProject: status.isUserProject,
         attributedToAppId: status.attributedToAppId,
+        totalNeighbors: status.totalNeighbors,
+        projectId: status.projectId,
         totalSeconds: project.total_seconds
       };
     });

@@ -40,16 +40,22 @@ export default async function handler(req, res) {
       .firstPage();
 
     if (existingProjects.length > 0) {
-      // Project exists, update it to include this user
+      // Project exists, check if it's already attributed to this user
       const existingProject = existingProjects[0];
       const currentNeighbors = existingProject.fields.neighbor || [];
       
-      // Only add the user if they're not already associated
-      if (!currentNeighbors.includes(userRecord.id)) {
-        await base("hackatimeProjects").update(existingProject.id, {
-          neighbor: [...currentNeighbors, userRecord.id],
+      if (currentNeighbors.includes(userRecord.id)) {
+        // User already has this project attributed
+        return res.status(200).json({
+          message: "Project already attributed to user",
+          project: existingProject,
         });
       }
+
+      // Add this user to the project's neighbors
+      await base("hackatimeProjects").update(existingProject.id, {
+        neighbor: [...currentNeighbors, userRecord.id],
+      });
 
       return res.status(200).json({
         message: "Project updated successfully",
@@ -64,6 +70,7 @@ export default async function handler(req, res) {
           name: projectName,
           githubLink: githubLink || "",
           neighbor: [userRecord.id], // Link to neighbor record
+          email: userRecord.fields.email, // Add email for tracking
         },
       },
     ]);
